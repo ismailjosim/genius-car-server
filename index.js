@@ -42,13 +42,37 @@ const run = async () => {
 
         })
 
-        // CRUD ====> Create data (C)
+        // CRUD ====> Create data (C) use "POST"
         // ORDERS API
         app.post('/orders', async (req, res) => {
             const orderData = req.body;
             const result = await Orders.insertOne(orderData);
             res.send(result)
         })
+
+        // read orders
+        app.get('/orders', async (req, res) => {
+            let query = {};
+            if (req.query.email) {
+                query = {
+                    email: req.query.email
+                }
+            }
+            // http://localhost:5000/orders?email=ismailjosim@gmail.com (query search)
+
+            const cursor = Orders.find(query);
+            const ordersData = await cursor.toArray();
+            res.send(ordersData);
+        })
+
+        // Delete Orders
+        app.delete('/orders/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) }
+            const result = await Orders.deleteOne(query);
+            res.send(result);
+        })
+
 
 
     } finally {
@@ -60,11 +84,10 @@ const run = async () => {
 run();
 
 
-
 app.get('/', (req, res) => {
     res.send("Genius Car Server is working!")
 })
 
 app.listen(port, () => {
-    console.log(`Genius Car server is working on Port ${ port }`.rainbow.italic);
+    console.log(`Genius Car server is working on Port ${ port }`.yellow.italic);
 })
