@@ -74,6 +74,24 @@ const run = async () => {
         })
 
 
+        // Update data
+        app.patch('/orders/:id', async (req, res) => {
+            const id = req.params.id;
+            const status = req.body.status;
+            const query = { _id: ObjectId(id) }
+            const updatedDoc = {
+                // Here $set we set and item
+                $set: {
+                    status: status
+                }
+            }
+            const result = await Orders.updateOne(query, updatedDoc);
+
+            res.send(result);
+
+        })
+
+
 
     } finally {
 
