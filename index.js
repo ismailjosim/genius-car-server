@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 
@@ -21,10 +22,39 @@ app.use(express.json())
 const uri = `mongodb+srv://${ process.env.DB_USER }:${ process.env.DB_PASSWORD }@cluster0.s9x13go.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+
+
+const verifyJWT = (req, res, next) => {
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).send({ message: 'unauthorized Access' });
+    }
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (error, decoded) {
+        if (error) {
+            return res.status(403).send({ message: 'Forbidden Access' })
+        }
+        req.decoded = decoded;
+        next();
+    })
+}
+
+
+
 const run = async () => {
     try {
         const Services = client.db('geniusCar').collection('services');
         const Orders = client.db('geniusCar').collection('orders');
+
+
+        // jwt validation
+        app.post('/jwt', (req, res) => {
+            const user = req.body
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+            res.send({ token })
+        })
+
 
         // CRUD ====> Read Data (R)
         app.get('/services', async (req, res) => {
@@ -39,7 +69,6 @@ const run = async () => {
             const query = { _id: ObjectId(id) };
             const serviceData = await Services.findOne(query);
             res.send(serviceData)
-
         })
 
         // CRUD ====> Create data (C) use "POST"
@@ -51,15 +80,20 @@ const run = async () => {
         })
 
         // read orders
-        app.get('/orders', async (req, res) => {
+        app.get('/orders', verifyJWT, async (req, res) => {
+
+            const decoded = req.decoded;
+            // console.log('inside orders api', decoded);
+
+            if (decoded.email !== req.query.email) {
+                req.status(403).send({ message: "Unauthorized Access" })
+            }
             let query = {};
             if (req.query.email) {
                 query = {
                     email: req.query.email
                 }
             }
-            // http://localhost:5000/orders?email=ismailjosim@gmail.com (query search)
-
             const cursor = Orders.find(query);
             const ordersData = await cursor.toArray();
             res.send(ordersData);
@@ -86,13 +120,8 @@ const run = async () => {
                 }
             }
             const result = await Orders.updateOne(query, updatedDoc);
-
             res.send(result);
-
         })
-
-
-
     } finally {
 
     }
