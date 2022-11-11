@@ -30,6 +30,8 @@ const verifyJWT = (req, res, next) => {
     if (!authHeader) {
         return res.status(401).send({ message: 'unauthorized Access' });
     }
+	
+	
     const token = authHeader.split(' ')[1];
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (error, decoded) {
         if (error) {
@@ -88,12 +90,14 @@ const run = async () => {
             if (decoded.email !== req.query.email) {
                 req.status(403).send({ message: "Unauthorized Access" })
             }
+			
             let query = {};
             if (req.query.email) {
                 query = {
                     email: req.query.email
                 }
             }
+			
             const cursor = Orders.find(query);
             const ordersData = await cursor.toArray();
             res.send(ordersData);
